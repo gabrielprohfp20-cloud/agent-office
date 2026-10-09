@@ -124,8 +124,6 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); overflow: hi
 
 /* ---------- Velocidade + estatísticas ---------- */
 .controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.controls-right { display: flex; gap: 6px; }
-.tasks-btn.icon { padding: 6px 8px; }
 .speed { display: flex; padding: 2px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); }
 .speed button {
   padding: 4px 10px; border-radius: 6px; border: 0; cursor: pointer;
@@ -164,7 +162,7 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); overflow: hi
 .team {
   top: 16px; right: 16px; width: 330px;
   padding: 14px;
-  max-height: calc(100% - 230px); overflow-y: auto; /* deixa espaço para o minimapa */
+  max-height: calc(100% - 80px); overflow-y: auto;
 }
 .team-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .team-head h2 { flex: 1; }
@@ -286,10 +284,6 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); overflow: hi
 .feed li:not(:first-child) { opacity: 0.6; }
 .feed time { color: var(--muted); font-size: 10.5px; font-family: var(--mono); flex: none; }
 
-/* ---------- Minimapa ---------- */
-.minimap { right: 56px; bottom: 16px; padding: 6px; line-height: 0; }
-.minimap canvas { width: 216px; height: 144px; border-radius: 8px; cursor: crosshair; }
-
 /* ---------- Botão de ajuda "?" (atalhos aparecem ao passar o rato) ---------- */
 .help {
   position: absolute; right: 16px; bottom: 16px; z-index: 100;
@@ -363,7 +357,7 @@ kbd {
 
 @media (max-width: 720px) {
   .team { top: auto; bottom: 16px; left: 16px; right: 16px; width: auto; max-height: 40%; }
-  .help, .feed, .minimap { display: none; }
+  .help, .feed { display: none; }
   .detail { bottom: auto; top: 190px; left: 16px; right: 16px; width: auto; }
   .brand { right: 16px; width: auto; }
   .columns { grid-template-columns: repeat(2, 1fr); }

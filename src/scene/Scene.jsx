@@ -12,7 +12,6 @@ import { useOffice } from '../sim/store'
 import { runtime } from '../sim/movement'
 import { REFLECT_LAYER } from './layers'
 import { getDaylight } from '../sim/daylight'
-import { cameraBus } from './cameraBus'
 
 const UP = new THREE.Vector3(0, 1, 0)
 const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
@@ -39,28 +38,6 @@ function CameraFollow({ selected }) {
       const k = 1 - Math.min(1, dt * 2.5) * (1 - 11 / dist)
       camera.position.sub(controls.target).multiplyScalar(k).add(controls.target)
     }
-  })
-  return null
-}
-
-// Minimapa: informa para onde a câmara olha e leva a câmara ao ponto clicado
-function CameraMinimap() {
-  const controls = useThree((s) => s.controls)
-  const delta = useMemo(() => new THREE.Vector3(), [])
-  useFrame(({ camera }, dt) => {
-    if (!controls) return
-    cameraBus.target[0] = controls.target.x
-    cameraBus.target[1] = controls.target.z
-    const f = cameraBus.focus
-    if (!f) return
-    delta.set(f[0], 0, f[1]).sub(controls.target).setY(0)
-    if (delta.length() < 0.05) {
-      cameraBus.focus = null // chegou
-      return
-    }
-    delta.multiplyScalar(Math.min(1, dt * 5))
-    controls.target.add(delta)
-    camera.position.add(delta)
   })
   return null
 }
@@ -255,7 +232,6 @@ export default function Scene({ selected, onSelect }) {
 
       <CameraFollow selected={selected} />
       <CameraKeys onManualMove={stopFollowing} />
-      <CameraMinimap />
       {/* Rato: arrastar para rodar, scroll para zoom, botão direito para mover */}
       <OrbitControls
         makeDefault

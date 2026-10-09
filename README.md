@@ -37,8 +37,6 @@ Depois abra <http://localhost:5173> no navegador.
 | Clique num agente | Seguir o agente e ver detalhes (✏️ para personalizar) |
 | `Espaço` | Pausa / continuar |
 | `1` `2` `3` | Velocidade 1x / 2x / 4x |
-| `M` | Ligar / desligar sons |
-| Minimapa | Clique para levar a câmara até lá |
 
 ## Funcionalidades
 
@@ -71,9 +69,8 @@ src/
     navigation.js      caminhos pelo escritório (algoritmo A*)
     store.js           estado partilhado + gravação automática
     market.js          mercado simulado
-    sound.js           sons discretos (Web Audio)
     daylight.js        cálculo do dia/noite
-  ui/                a interface por cima do 3D (painéis, Kanban, estatísticas, minimapa)
+  ui/                a interface por cima do 3D (painéis, Kanban, estatísticas)
 tests/               testes automáticos (Vitest)
 ```
 

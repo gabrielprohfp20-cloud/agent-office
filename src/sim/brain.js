@@ -10,7 +10,6 @@
 import { getAgent, getTask, log, say, useOffice } from './store'
 import { runtime } from './movement'
 import { every, simNow } from './clock'
-import { play } from './sound'
 import { deskSeat } from './places'
 import { planObjective, PRESETS } from './planner'
 import {
@@ -66,7 +65,6 @@ function startNextObjective() {
   planning = true
   useOffice.setState({ objective: { id: 'planning', title, status: 'planning' }, tasks: [] })
   log(`🎯 Novo objetivo: ${title}`, pm.color)
-  play('start')
 
   let plan
   planAtPanel(pm.id, title, () => {
@@ -140,7 +138,6 @@ function finishTask(task, agent) {
   state().addHistory(agent.id, { title: t.title, emoji: t.emoji, kind: t.kind, bugs: t.bugs, seconds, at: Date.now() })
   state().bumpStats({ tasksDone: 1, workSeconds: seconds })
   log(`✅ ${task.title} — concluída`, agent.color)
-  play('task')
 }
 
 function sendToReview(task, agent) {
@@ -174,7 +171,6 @@ function finishReview(task, reviewer) {
     const n = 1 + Math.floor(Math.random() * 3)
     state().setStatus(assignee.id, { bugsCaused: assignee.bugsCaused + 1 })
     state().bumpStats({ bugsFound: 1 })
-    play('bug')
     patchTask(task.id, { status: 'doing', progress: 0.55, bugs: task.bugs + 1, reviewer: null, reviewReady: false })
     log(`🐛 ${reviewer.name} encontrou ${n} bug${n > 1 ? 's' : ''} em "${task.title}"`, reviewer.color)
     if (!isBusy(reviewer.id) && !isBusy(assignee.id)) {
@@ -235,7 +231,6 @@ function checkObjectiveDone() {
   if (!s.tasks.every((t) => t.status === 'done')) return
   useOffice.setState({ objective: { ...s.objective, status: 'done' }, objectivesDone: s.objectivesDone + 1 })
   log(`🎉 Objetivo concluído: ${s.objective.title}`, '#22c55e')
-  play('objective')
   celebrateUntil = simNow() + 5000
   freeAgents().forEach((a) => say(a.id, '🎉', 'Objetivo concluído!'))
   nextObjectiveAt = simNow() + 9000

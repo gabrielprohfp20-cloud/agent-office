@@ -5,7 +5,6 @@ import { changePct, fmtPrice, market } from '../sim/market'
 import TaskBoard from './TaskBoard'
 import StatsPanel, { fmtSeconds } from './StatsPanel'
 import AgentEditor from './AgentEditor'
-import Minimap from './Minimap'
 
 const ACTIVITY = {
   typing: 'A trabalhar',
@@ -84,16 +83,6 @@ export default function Hud({ selected, onSelect }) {
   const [boardOpen, setBoardOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const muted = useOffice((s) => s.muted)
-  const setMuted = useOffice((s) => s.setMuted)
-  useEffect(() => {
-    const onKey = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return
-      if (e.key === 'm' || e.key === 'M') setMuted(!muted)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [muted, setMuted])
   useSpeedKeys(speed, setSpeed)
   const [teamFolded, setTeamFolded] = useRemembered('fold-team')
   const [feedFolded, setFeedFolded] = useRemembered('fold-feed')
@@ -131,17 +120,7 @@ export default function Hud({ selected, onSelect }) {
               </button>
             ))}
           </div>
-          <div className="controls-right">
-            <button
-              className="tasks-btn icon"
-              onClick={() => setMuted(!muted)}
-              title={muted ? 'Ligar sons (tecla M)' : 'Desligar sons (tecla M)'}
-              aria-label={muted ? 'Ligar sons' : 'Desligar sons'}
-            >
-              {muted ? '🔇' : '🔊'}
-            </button>
-            <button className="tasks-btn" onClick={() => setStatsOpen((o) => !o)}>📊 Estatísticas</button>
-          </div>
+          <button className="tasks-btn" onClick={() => setStatsOpen((o) => !o)}>📊 Estatísticas</button>
         </div>
 
         {/* Objetivo atual (linha discreta) + botão para abrir o quadro de tarefas */}
@@ -265,8 +244,6 @@ export default function Hud({ selected, onSelect }) {
         </ol>
       </section>
 
-      <Minimap selected={selected} onSelect={onSelect} />
-
       {/* Ajuda discreta: só mostra os atalhos ao passar o rato */}
       <div className="help" tabIndex={0} aria-label="Atalhos de teclado">
         ?
@@ -277,8 +254,6 @@ export default function Hud({ selected, onSelect }) {
           <div>Scroll: zoom</div>
           <div>Clique num agente para o seguir</div>
           <div><kbd>Espaço</kbd> pausa · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> velocidade</div>
-          <div><kbd>M</kbd> ligar/desligar sons</div>
-          <div>Minimapa: clique para ir até lá</div>
         </div>
       </div>
     </>

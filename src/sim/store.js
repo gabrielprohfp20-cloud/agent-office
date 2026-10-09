@@ -4,7 +4,6 @@
 import { create } from 'zustand'
 import { AGENTS } from '../data/office'
 import { setSpeed as setClockSpeed } from './clock'
-import { setMuted as setSoundMuted } from './sound'
 
 const SAVE_KEY = 'agent-office-save-v1'
 const HISTORY_MAX = 20
@@ -66,13 +65,11 @@ function restore(save) {
     presetIndex: save.presetIndex || 0,
     stats: { ...freshStats(), ...save.stats },
     speed: save.speed ?? 1,
-    muted: !!save.muted,
   }
 }
 
 const restored = restore(loadSave())
 setClockSpeed(restored.speed ?? 1)
-setSoundMuted(!!restored.muted)
 
 export const useOffice = create((set) => ({
   agents: restored.agents,
@@ -87,14 +84,8 @@ export const useOffice = create((set) => ({
 
   stats: freshStats(),
   speed: 1, // 0 = pausa, 1 = normal, 2 = 2x, 4 = 4x
-  muted: false, // sons desligados?
 
   ...restored,
-
-  setMuted: (muted) => {
-    setSoundMuted(muted)
-    set({ muted })
-  },
 
   setSpeed: (speed) => {
     setClockSpeed(speed)
@@ -155,7 +146,6 @@ function save() {
     presetIndex: s.presetIndex,
     stats: s.stats,
     speed: s.speed,
-    muted: s.muted,
   }
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data))
