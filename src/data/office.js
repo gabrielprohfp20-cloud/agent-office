@@ -12,6 +12,19 @@ export const DESKS = [
   { id: 5, position: [-2, 0, 1.5], rotation: Math.PI },
 ]
 
+// Fase 4: lugares livres para novas contratações (a mesa só aparece quando alguém a ocupa)
+export const EXTRA_DESKS = [
+  { id: 6, position: [1.5, 0, -4.5], rotation: Math.PI },
+  { id: 7, position: [1.5, 0, 1.5], rotation: Math.PI },
+  { id: 8, position: [-9, 0, 4.6], rotation: Math.PI },
+  { id: 9, position: [-2, 0, 4.6], rotation: Math.PI },
+]
+
+export const ALL_DESKS = [...DESKS, ...EXTRA_DESKS]
+
+// Ponto de entrada no escritório (junto à porta da parede esquerda)
+export const DOOR = { x: -11.3, z: 6, rot: -Math.PI / 2 }
+
 // activity: 'typing' (a escrever), 'thinking' (a pensar) ou 'idle' (parado)
 export const AGENTS = [
   {

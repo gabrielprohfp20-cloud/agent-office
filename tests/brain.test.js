@@ -1,6 +1,6 @@
 // Teste de integração: o escritório inteiro (cérebro + movimento + rotinas) a correr
 // a alta velocidade tem de completar um objetivo sozinho, sem erros e sem ficar preso.
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 describe('cérebro do escritório', () => {
   it('completa um objetivo do início ao fim', async () => {
@@ -28,5 +28,26 @@ describe('cérebro do escritório', () => {
     // as tarefas concluídas aparecem no histórico de quem as fez
     const historyTotal = s.agents.reduce((n, a) => n + a.history.length, 0)
     expect(historyTotal).toBe(s.stats.tasksDone)
+  }, 120_000)
+
+  it('contrata sozinho quando há trabalho à espera (objetivo grande)', async () => {
+    vi.resetModules()
+    localStorage.clear()
+    // começar pelo objetivo grande (3 tarefas de código em paralelo, só 2 programadores)
+    localStorage.setItem('agent-office-save-v1', JSON.stringify({ presetIndex: 3 }))
+    const { useOffice } = await import('../src/sim/store')
+    const { startEngine } = await import('../src/sim/engine')
+    useOffice.getState().setSpeed(40)
+    const stop = startEngine()
+    const before = useOffice.getState().agents.length
+    const t0 = Date.now()
+    while (useOffice.getState().agents.length === before && Date.now() - t0 < 100_000) {
+      await new Promise((r) => setTimeout(r, 200))
+    }
+    stop()
+    const s = useOffice.getState()
+    expect(s.objective?.title).toBe('Plataforma de análise de mercado')
+    expect(s.agents.length).toBeGreaterThan(before)
+    expect(s.log.some((l) => l.text.includes('contratou'))).toBe(true)
   }, 120_000)
 })

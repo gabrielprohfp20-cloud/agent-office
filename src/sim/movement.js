@@ -19,6 +19,16 @@ export function placeAtDesk(agent) {
   }
 }
 
+// Coloca um agente de pé num ponto qualquer (ex.: um contratado a entrar pela porta)
+export function placeStanding(id, { x, z, rot }) {
+  runtime[id] = {
+    x, z, rot, targetRot: rot,
+    path: [], speed: 1.6, onArrive: null,
+    sit: 0, sitTarget: 0, seat: null,
+    walkPhase: 0, carry: null,
+  }
+}
+
 const angleDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a))
 
 // Avança a simulação de movimento um bocadinho (dt = segundos desde o último frame)

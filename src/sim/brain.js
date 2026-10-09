@@ -10,6 +10,7 @@
 import { getAgent, getTask, log, say, useOffice } from './store'
 import { runtime } from './movement'
 import { every, simNow } from './clock'
+import { HIRABLE_ROLES, freeDeskCount, hireAgent } from './team'
 import { deskSeat } from './places'
 import { planObjective, PRESETS } from './planner'
 import {
@@ -253,6 +254,35 @@ function maybeBreak() {
   }
 }
 
+// ---------- 8. Contratar quando há trabalho à espera (Fase 4) ----------
+// Se uma tarefa pronta a começar fica muito tempo sem ninguém livre com a função certa,
+// o PM contrata alguém novo (se houver mesa livre). Há um intervalo mínimo entre contratações.
+const HIRE_AFTER_MS = 25_000
+const HIRE_COOLDOWN_MS = 45_000
+const waitingSince = {}
+let lastHireAt = -Infinity
+
+function maybeHire() {
+  const s = state()
+  const now = simNow()
+  const ready = s.tasks.filter((t) =>
+    t.status === 'todo' && !t.assignee && t.deps.every((d) => getTask(d)?.status === 'done'))
+  for (const role of HIRABLE_ROLES) {
+    if (!ready.some((t) => t.role === role)) {
+      delete waitingSince[role]
+      continue
+    }
+    waitingSince[role] ??= now
+    if (now - waitingSince[role] < HIRE_AFTER_MS || now - lastHireAt < HIRE_COOLDOWN_MS) continue
+    if (freeDeskCount() === 0) return
+    if (hireAgent(role, 'auto')) {
+      lastHireAt = now
+      delete waitingSince[role]
+    }
+    return // no máximo uma contratação de cada vez
+  }
+}
+
 // ---------- Ciclo principal ----------
 function tick() {
   const s = state()
@@ -260,7 +290,10 @@ function tick() {
   const noObjective = !s.objective || s.objective.status === 'done'
   if (noObjective && !planning && now >= nextObjectiveAt) startNextObjective()
   if (s.objective?.status === 'active') {
-    if (!planning) assignTasks() // só distribui depois da reunião de arranque
+    if (!planning) {
+      assignTasks() // só distribui depois da reunião de arranque
+      maybeHire()
+    }
     doWork(TICK_MS / 1000)
     checkObjectiveDone()
   } else {

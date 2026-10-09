@@ -1,5 +1,5 @@
 // Lugares do escritório para onde os agentes podem ir.
-import { DESKS, seatFor } from '../data/office'
+import { ALL_DESKS, seatFor } from '../data/office'
 
 // Ângulo para um agente em "from" ficar virado para "to"
 export function faceTowards(from, to) {
@@ -13,7 +13,7 @@ export function makeSeat(x, z, rot, back = 0.55) {
 }
 
 export function deskSeat(deskId) {
-  const s = seatFor(DESKS.find((d) => d.id === deskId))
+  const s = seatFor(ALL_DESKS.find((d) => d.id === deskId))
   return makeSeat(s.position[0], s.position[2], s.rotation)
 }
 

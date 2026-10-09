@@ -6,6 +6,10 @@ import { placeAtDesk, runtime, stepMovement } from './movement'
 import { startBrain } from './brain'
 import { startMarket } from './market'
 import { onTick, simNow } from './clock'
+import { rebuildNavigation } from './team'
+
+// A navegação tem de conhecer as mesas dos contratados (recuperados da gravação)
+rebuildNavigation()
 
 // Toda a gente começa sentada na sua secretária
 useOffice.getState().agents.forEach((a) => {

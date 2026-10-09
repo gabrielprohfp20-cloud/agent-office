@@ -2,7 +2,7 @@
 // agentes, feed de atividade, objetivo atual, tarefas, fila, estatísticas e velocidade.
 // O estado é gravado no navegador (localStorage) e recuperado ao recarregar a página.
 import { create } from 'zustand'
-import { AGENTS } from '../data/office'
+import { AGENTS, ALL_DESKS } from '../data/office'
 import { setSpeed as setClockSpeed } from './clock'
 
 const SAVE_KEY = 'agent-office-save-v1'
@@ -39,6 +39,18 @@ function restore(save) {
     const look = Object.fromEntries(LOOK_FIELDS.filter((k) => s[k]).map((k) => [k, s[k]]))
     return { ...freshAgent(a), ...look, doneCount: s.doneCount || 0, reviews: s.reviews || 0, bugsCaused: s.bugsCaused || 0, history: s.history || [] }
   })
+  // Fase 4: agentes contratados (não existem na lista inicial)
+  const deskIds = new Set(ALL_DESKS.map((d) => d.id))
+  for (const s of save?.agents || []) {
+    if (!s.hired || agents.some((a) => a.id === s.id) || !deskIds.has(s.desk)) continue
+    agents.push({
+      ...freshAgent({
+        id: s.id, name: s.name, role: s.role, title: s.title, color: s.color, skin: s.skin, hair: s.hair,
+        desk: s.desk, symbol: s.symbol, hired: true, activity: 'idle', emoji: '💼', status: 'De volta ao trabalho',
+      }),
+      doneCount: s.doneCount || 0, reviews: s.reviews || 0, bugsCaused: s.bugsCaused || 0, history: s.history || [],
+    })
+  }
   if (!save) return { agents }
 
   let { objective, tasks = [], queue = [] } = save
@@ -136,8 +148,8 @@ function save() {
   saveTimer = null
   const s = useOffice.getState()
   const data = {
-    agents: s.agents.map(({ id, name, color, hair, skin, doneCount, reviews, bugsCaused, history }) =>
-      ({ id, name, color, hair, skin, doneCount, reviews, bugsCaused, history })),
+    agents: s.agents.map(({ id, name, color, hair, skin, doneCount, reviews, bugsCaused, history, hired, role, title, desk, symbol }) =>
+      ({ id, name, color, hair, skin, doneCount, reviews, bugsCaused, history, ...(hired && { hired, role, title, desk, symbol }) })),
     objective: s.objective,
     tasks: s.tasks,
     queue: s.queue,

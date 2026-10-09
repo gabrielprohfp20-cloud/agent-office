@@ -7,7 +7,7 @@ import Office from './Office'
 import Agent from './Agent'
 import SimRunner from './SimRunner'
 import { Chair, Desk } from './Furniture'
-import { DESKS, seatFor } from '../data/office'
+import { DESKS, EXTRA_DESKS, seatFor } from '../data/office'
 import { useOffice } from '../sim/store'
 import { runtime } from '../sim/movement'
 import { REFLECT_LAYER } from './layers'
@@ -15,6 +15,17 @@ import { getDaylight } from '../sim/daylight'
 
 const UP = new THREE.Vector3(0, 1, 0)
 const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
+
+// Uma mesa de trading com a sua cadeira
+function DeskWithChair({ desk, owner }) {
+  const seat = seatFor(desk)
+  return (
+    <group>
+      <Desk position={desk.position} rotation={desk.rotation} symbol={owner?.symbol} />
+      <Chair position={seat.position} rotation={seat.rotation} />
+    </group>
+  )
+}
 
 // Quando um agente é selecionado, a câmara aproxima-se e segue-o
 function CameraFollow({ selected }) {
@@ -214,17 +225,14 @@ export default function Scene({ selected, onSelect }) {
         <Office />
 
         {/* Mesas de trading e cadeiras */}
-        {DESKS.map((desk) => {
-          const owner = agents.find((a) => a.desk === desk.id)
-          const seat = seatFor(desk)
-          return (
-            <group key={desk.id}>
-              <Desk position={desk.position} rotation={desk.rotation} symbol={owner?.symbol} />
-              <Chair position={seat.position} rotation={seat.rotation} />
-            </group>
-          )
-        })}
+        {DESKS.map((desk) => <DeskWithChair key={desk.id} desk={desk} owner={agents.find((a) => a.desk === desk.id)} />)}
       </Static>
+
+      {/* Fase 4: mesas dos contratados (aparecem quando alguém é contratado) */}
+      {EXTRA_DESKS.map((desk) => {
+        const owner = agents.find((a) => a.desk === desk.id)
+        return owner ? <DeskWithChair key={desk.id} desk={desk} owner={owner} /> : null
+      })}
 
       {agents.map((agent) => (
         <Agent key={agent.id} agent={agent} selected={selected === agent.id} onSelect={onSelect} />

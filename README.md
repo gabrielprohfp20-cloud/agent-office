@@ -44,6 +44,7 @@ Depois abra <http://localhost:5173> no navegador.
 - **Cérebro dos agentes**: objetivos → tarefas com dependências → revisões (o QA revê código, o PM revê design) → bugs → objetivo concluído.
 - **Quadro de tarefas** (📋 Tarefas) onde também se podem pedir objetivos novos.
 - **Estatísticas** (📊) e histórico por agente.
+- **Equipa que cresce**: se há trabalho à espera e ninguém livre com a função certa, o PM contrata alguém (até 10 pessoas). Também se pode contratar no botão "+ Contratar agente". Os contratados entram pela porta e ganham uma mesa nova.
 - **Gravação automática** no navegador: ao recarregar, tudo continua de onde estava.
 - **Continua a trabalhar com a aba escondida** (o ritmo vem de um Web Worker).
 
@@ -64,6 +65,7 @@ src/
     clock.js           relógio (Web Worker, velocidade, pausa)
     brain.js           o cérebro: objetivos, tarefas, revisões, pausas
     planner.js         divide um objetivo em tarefas
+    team.js            contratar agentes (mesas novas, entrada pela porta)
     routines.js        "histórias" animadas (visitar colegas, reuniões, café)
     movement.js        andar, sentar, levantar
     navigation.js      caminhos pelo escritório (algoritmo A*)
@@ -79,6 +81,6 @@ tests/               testes automáticos (Vitest)
 1. ~~Escritório 3D~~ ✅
 2. ~~Agentes animados~~ ✅
 3. ~~Cérebro simulado~~ ✅
-4. Equipa que cresce (contratar agentes)
+4. ~~Equipa que cresce~~ ✅
 5. IA real (Claude) + servidor próprio
 6. Agentes de trading (primeiro com dinheiro simulado)

@@ -5,6 +5,7 @@ import { changePct, fmtPrice, market } from '../sim/market'
 import TaskBoard from './TaskBoard'
 import StatsPanel, { fmtSeconds } from './StatsPanel'
 import AgentEditor from './AgentEditor'
+import HireButton from './HireButton'
 
 const ACTIVITY = {
   typing: 'A trabalhar',
@@ -173,7 +174,7 @@ export default function Hud({ selected, onSelect }) {
             )
           })}
         </ul>
-        <button className="hire" disabled title="Disponível na Fase 4">+ Contratar agente</button>
+        <HireButton />
       </aside>
 
       {current && (

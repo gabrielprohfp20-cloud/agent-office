@@ -51,6 +51,20 @@ export const PRESETS = [
       ['docs', 'Escrever o guia do simulador', [3]],
     ],
   },
+  {
+    // Objetivo grande: 3 tarefas de código em paralelo -> com 2 programadores, falta gente
+    title: 'Plataforma de análise de mercado',
+    tasks: [
+      ['research', 'Escolher os indicadores a acompanhar'],
+      ['dev', 'Ligar os dados de criptomoedas', [0]],
+      ['dev', 'Ligar os dados de ações', [0]],
+      ['dev', 'Ligar os dados de matérias-primas', [0]],
+      ['design', 'Desenhar o painel principal', [0]],
+      ['dev', 'Juntar tudo no painel', [1, 2, 3, 4]],
+      ['test', 'Testar a plataforma completa', [5]],
+      ['docs', 'Escrever o guia da plataforma', [5]],
+    ],
+  },
 ]
 
 // Plano genérico para objetivos escritos pelo utilizador
