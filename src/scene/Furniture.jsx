@@ -1,12 +1,14 @@
 // Mobília do escritório de trading: preto, elegante, com luz indireta discreta.
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
 import { Instance, Instances } from '@react-three/drei'
 import { Box, RBox, Cyl, Neon, Screen, seeded } from './primitives'
 import {
   chartTexture, holoTexture, quoteTexture,
-  roundClockTexture, skylineTexture, watchlistTexture,
+  roundClockTexture, skylineDayTexture, skylineTexture, watchlistTexture,
 } from './screens'
+import { getDaylight } from '../sim/daylight'
 
 const BLACK = '#121418'
 const METAL = '#1c1f25'
@@ -296,10 +298,20 @@ export function WaterCooler({ position }) {
 // ---------- Janela grande com a cidade à noite ----------
 export function Window({ position, rotation = 0, width = 2.6, height = 2.1 }) {
   const tex = useMemo(() => skylineTexture(), [])
+  const dayTex = useMemo(() => skylineDayTexture(), [])
+  const dayMat = useRef()
+  // a vista de dia aparece por cima da de noite, mais ou menos transparente conforme a hora
+  useFrame(() => {
+    if (dayMat.current) dayMat.current.opacity = getDaylight()
+  })
   return (
     <group position={position} rotation-y={rotation}>
       <Box args={[width + 0.1, height + 0.1, 0.06]} color="#0b0c0f" metalness={0.5} />
       <Screen args={[width, height]} texture={tex} brightness={0.75} position={[0, 0, 0.032]} />
+      <mesh position={[0, 0, 0.034]}>
+        <planeGeometry args={[width, height]} />
+        <meshBasicMaterial ref={dayMat} map={dayTex} transparent opacity={0} toneMapped={false} color={[0.95, 0.95, 0.95]} />
+      </mesh>
       <Box args={[0.035, height, 0.03]} position={[0, 0, 0.045]} color="#0b0c0f" shadow={false} />
       <Box args={[width, 0.035, 0.03]} position={[0, height * 0.12, 0.045]} color="#0b0c0f" shadow={false} />
     </group>

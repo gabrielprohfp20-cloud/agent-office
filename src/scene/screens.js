@@ -289,37 +289,48 @@ export function concreteTexture() {
   })
 }
 
-// Vista da cidade à noite
-export function skylineTexture() {
-  return fixedTexture('skyline', 768, 512, (g, w, h) => {
-    const grad = g.createLinearGradient(0, 0, 0, h)
+// Vista da cidade: de noite (luzes acesas) ou de dia (céu azul).
+// Os prédios são os mesmos nas duas versões (mesma "semente"), para a transição ser suave.
+function drawSkyline(g, w, h, day) {
+  const grad = g.createLinearGradient(0, 0, 0, h)
+  if (day) {
+    grad.addColorStop(0, '#5ea7e6')
+    grad.addColorStop(0.6, '#a9d3f2')
+    grad.addColorStop(1, '#e8f1f8')
+  } else {
     grad.addColorStop(0, '#141a3a')
     grad.addColorStop(0.55, '#3a2a6a')
     grad.addColorStop(1, '#7a4a8a')
-    g.fillStyle = grad
-    g.fillRect(0, 0, w, h)
-    const r = seeded(42)
-    for (let layer = 0; layer < 2; layer++) {
-      let x = -10
-      while (x < w + 10) {
-        const bw = 36 + r() * 70
-        const bh = (layer ? 180 : 110) + r() * (layer ? 260 : 170)
-        g.fillStyle = layer ? '#0a0d1e' : '#20264a'
-        g.fillRect(x, h - bh, bw, bh)
-        if (layer) {
-          for (let wy = h - bh + 10; wy < h - 8; wy += 12) {
-            for (let wx = x + 6; wx < x + bw - 6; wx += 9) {
-              if (r() > 0.6) {
-                g.fillStyle = r() > 0.8 ? '#93c5fd' : '#fde68a'
-                g.globalAlpha = 0.45 + r() * 0.55
-                g.fillRect(wx, wy, 3, 5)
-              }
+  }
+  g.fillStyle = grad
+  g.fillRect(0, 0, w, h)
+  const r = seeded(42)
+  for (let layer = 0; layer < 2; layer++) {
+    let x = -10
+    while (x < w + 10) {
+      const bw = 36 + r() * 70
+      const bh = (layer ? 180 : 110) + r() * (layer ? 260 : 170)
+      g.fillStyle = day ? (layer ? '#5b6675' : '#8d99a8') : (layer ? '#0a0d1e' : '#20264a')
+      g.fillRect(x, h - bh, bw, bh)
+      if (layer) {
+        for (let wy = h - bh + 10; wy < h - 8; wy += 12) {
+          for (let wx = x + 6; wx < x + bw - 6; wx += 9) {
+            if (r() > 0.6) {
+              // tirar sempre os mesmos números aleatórios, de dia e de noite
+              const warm = r() > 0.8
+              const glow = r()
+              g.fillStyle = day ? '#b9c7d6' : warm ? '#93c5fd' : '#fde68a'
+              g.globalAlpha = day ? 0.35 : 0.45 + glow * 0.55
+              g.fillRect(wx, wy, 3, 5)
             }
           }
-          g.globalAlpha = 1
         }
-        x += bw + 3
+        g.globalAlpha = 1
       }
+      x += bw + 3
     }
-  })
+  }
 }
+
+export const skylineTexture = () => fixedTexture('skyline', 768, 512, (g, w, h) => drawSkyline(g, w, h, false))
+export const skylineDayTexture = () => fixedTexture('skyline-day', 768, 512, (g, w, h) => drawSkyline(g, w, h, true))

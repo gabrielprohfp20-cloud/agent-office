@@ -11,6 +11,8 @@ import { DESKS, seatFor } from '../data/office'
 import { useOffice } from '../sim/store'
 import { runtime } from '../sim/movement'
 import { REFLECT_LAYER } from './layers'
+import { getDaylight } from '../sim/daylight'
+import { cameraBus } from './cameraBus'
 
 const UP = new THREE.Vector3(0, 1, 0)
 const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
@@ -37,6 +39,28 @@ function CameraFollow({ selected }) {
       const k = 1 - Math.min(1, dt * 2.5) * (1 - 11 / dist)
       camera.position.sub(controls.target).multiplyScalar(k).add(controls.target)
     }
+  })
+  return null
+}
+
+// Minimapa: informa para onde a câmara olha e leva a câmara ao ponto clicado
+function CameraMinimap() {
+  const controls = useThree((s) => s.controls)
+  const delta = useMemo(() => new THREE.Vector3(), [])
+  useFrame(({ camera }, dt) => {
+    if (!controls) return
+    cameraBus.target[0] = controls.target.x
+    cameraBus.target[1] = controls.target.z
+    const f = cameraBus.focus
+    if (!f) return
+    delta.set(f[0], 0, f[1]).sub(controls.target).setY(0)
+    if (delta.length() < 0.05) {
+      cameraBus.focus = null // chegou
+      return
+    }
+    delta.multiplyScalar(Math.min(1, dt * 5))
+    controls.target.add(delta)
+    camera.position.add(delta)
   })
   return null
 }
@@ -128,6 +152,32 @@ function ReflectOnlyAgents() {
   return null
 }
 
+// Ciclo dia/noite: ajusta o fundo e as luzes conforme a hora real.
+// De dia: mais luz geral e um sol mais forte; as lâmpadas ficam mais fracas.
+const NIGHT = { bg: new THREE.Color('#1b1d22'), hemi: 1.0, sun: 1.3, lamp: 1 }
+const DAY = { bg: new THREE.Color('#353b45'), hemi: 1.55, sun: 2.5, lamp: 0.45 }
+
+function DayNight() {
+  const scene = useThree((s) => s.scene)
+  const last = useRef(-1)
+  useFrame(() => {
+    const d = getDaylight()
+    if (Math.abs(d - last.current) < 0.002) return // só atualiza quando muda
+    last.current = d
+    const mix = (a, b) => a + (b - a) * d
+    if (scene.background?.isColor) scene.background.copy(NIGHT.bg).lerp(DAY.bg, d)
+    if (scene.fog) scene.fog.color.copy(NIGHT.bg).lerp(DAY.bg, d)
+    scene.traverse((o) => {
+      if (!o.isLight) return
+      if (o.userData.base === undefined) o.userData.base = o.intensity
+      if (o.name === 'hemi') o.intensity = o.userData.base * mix(NIGHT.hemi, DAY.hemi)
+      else if (o.name === 'sun') o.intensity = o.userData.base * mix(NIGHT.sun, DAY.sun) / NIGHT.sun
+      else if (o.name === 'lamp') o.intensity = o.userData.base * mix(NIGHT.lamp, DAY.lamp)
+    })
+  })
+  return null
+}
+
 // As sombras só são redesenhadas a cada 2 frames (os agentes andam devagar: não se nota)
 function ShadowThrottle() {
   const gl = useThree((s) => s.gl)
@@ -153,9 +203,11 @@ export default function Scene({ selected, onSelect }) {
       <fog attach="fog" args={['#1b1d22', 45, 95]} />
       <SimRunner />
 
-      {/* Luzes noturnas: luz geral suave + luzes quentes por zona */}
-      <hemisphereLight args={['#e3ecff', '#3a3a40', 1.0]} />
+      {/* Luzes: luz geral + "sol" + luzes quentes por zona (a intensidade muda com a hora, ver DayNight) */}
+      <DayNight />
+      <hemisphereLight name="hemi" args={['#e3ecff', '#3a3a40', 1.0]} />
       <directionalLight
+        name="sun"
         position={[12, 20, 10]}
         intensity={1.3}
         color="#fff1e0"
@@ -169,8 +221,8 @@ export default function Scene({ selected, onSelect }) {
         shadow-camera-bottom={-16}
       />
       {/* Cada luz extra custa desempenho: usamos só 2 luzes quentes */}
-      <pointLight position={[-5.5, 3.4, -1.5]} color="#ffe0bd" intensity={22} distance={16} decay={1.1} />
-      <pointLight position={[8, 3.2, 0]} color="#ffdcb0" intensity={16} distance={14} decay={1.1} />
+      <pointLight name="lamp" position={[-5.5, 3.4, -1.5]} color="#ffe0bd" intensity={22} distance={16} decay={1.1} />
+      <pointLight name="lamp" position={[8, 3.2, 0]} color="#ffdcb0" intensity={16} distance={14} decay={1.1} />
       <ShadowThrottle />
       <ReflectOnlyAgents />
 
@@ -203,6 +255,7 @@ export default function Scene({ selected, onSelect }) {
 
       <CameraFollow selected={selected} />
       <CameraKeys onManualMove={stopFollowing} />
+      <CameraMinimap />
       {/* Rato: arrastar para rodar, scroll para zoom, botão direito para mover */}
       <OrbitControls
         makeDefault

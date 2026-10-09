@@ -4,9 +4,11 @@
 import { create } from 'zustand'
 import { AGENTS } from '../data/office'
 import { setSpeed as setClockSpeed } from './clock'
+import { setMuted as setSoundMuted } from './sound'
 
 const SAVE_KEY = 'agent-office-save-v1'
 const HISTORY_MAX = 20
+const LOOK_FIELDS = ['name', 'color', 'hair', 'skin'] // o que o utilizador pode personalizar
 
 const freshAgent = (a) => ({
   ...a,
@@ -33,7 +35,10 @@ function loadSave() {
 function restore(save) {
   const agents = AGENTS.map((a) => {
     const s = save?.agents?.find((x) => x.id === a.id)
-    return s ? { ...freshAgent(a), doneCount: s.doneCount, reviews: s.reviews, bugsCaused: s.bugsCaused, history: s.history || [] } : freshAgent(a)
+    if (!s) return freshAgent(a)
+    // aparência personalizada pelo utilizador (só os campos que existirem)
+    const look = Object.fromEntries(LOOK_FIELDS.filter((k) => s[k]).map((k) => [k, s[k]]))
+    return { ...freshAgent(a), ...look, doneCount: s.doneCount || 0, reviews: s.reviews || 0, bugsCaused: s.bugsCaused || 0, history: s.history || [] }
   })
   if (!save) return { agents }
 
@@ -61,11 +66,13 @@ function restore(save) {
     presetIndex: save.presetIndex || 0,
     stats: { ...freshStats(), ...save.stats },
     speed: save.speed ?? 1,
+    muted: !!save.muted,
   }
 }
 
 const restored = restore(loadSave())
 setClockSpeed(restored.speed ?? 1)
+setSoundMuted(!!restored.muted)
 
 export const useOffice = create((set) => ({
   agents: restored.agents,
@@ -80,8 +87,14 @@ export const useOffice = create((set) => ({
 
   stats: freshStats(),
   speed: 1, // 0 = pausa, 1 = normal, 2 = 2x, 4 = 4x
+  muted: false, // sons desligados?
 
   ...restored,
+
+  setMuted: (muted) => {
+    setSoundMuted(muted)
+    set({ muted })
+  },
 
   setSpeed: (speed) => {
     setClockSpeed(speed)
@@ -94,6 +107,14 @@ export const useOffice = create((set) => ({
   // Muda o que um agente está a fazer (aparece no balão e na lista)
   setStatus: (id, patch) =>
     set((s) => ({ agents: s.agents.map((a) => (a.id === id ? { ...a, ...patch } : a)) })),
+
+  // Personalização feita pelo utilizador: nome, cor da camisola, cabelo, pele
+  customizeAgent: (id, patch) => {
+    const clean = Object.fromEntries(Object.entries(patch).filter(([k]) => LOOK_FIELDS.includes(k)))
+    if (clean.name !== undefined) clean.name = clean.name.trim().slice(0, 16) || undefined
+    if (clean.name === undefined) delete clean.name
+    set((s) => ({ agents: s.agents.map((a) => (a.id === id ? { ...a, ...clean } : a)) }))
+  },
 
   // Acrescenta uma tarefa ao histórico de um agente
   addHistory: (id, entry) =>
@@ -124,7 +145,8 @@ function save() {
   saveTimer = null
   const s = useOffice.getState()
   const data = {
-    agents: s.agents.map(({ id, doneCount, reviews, bugsCaused, history }) => ({ id, doneCount, reviews, bugsCaused, history })),
+    agents: s.agents.map(({ id, name, color, hair, skin, doneCount, reviews, bugsCaused, history }) =>
+      ({ id, name, color, hair, skin, doneCount, reviews, bugsCaused, history })),
     objective: s.objective,
     tasks: s.tasks,
     queue: s.queue,
@@ -133,6 +155,7 @@ function save() {
     presetIndex: s.presetIndex,
     stats: s.stats,
     speed: s.speed,
+    muted: s.muted,
   }
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data))
