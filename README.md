@@ -1,8 +1,8 @@
 # Agent Office
 
-Escritório 3D em tempo real com uma equipa de agentes de IA, no estilo de um *trading floor*.
-Os agentes recebem objetivos, dividem-nos em tarefas, trabalham, revêem o trabalho uns dos
-outros e vão tomar café — tudo visível no escritório.
+Escritório 3D em tempo real com uma mesa de trading de agentes de IA.
+Os agentes recebem objetivos, analisam o mercado, abrem e fecham operações, passam pelo
+controlo de risco e vão tomar café — tudo visível no escritório.
 
 > Por agora a "inteligência" é **simulada** (sem IA real e sem custos), e os preços nos ecrãs
 > vêm de um **mercado simulado**. Nenhum dinheiro real está envolvido.
@@ -41,10 +41,12 @@ Depois abra <http://localhost:5173> no navegador.
 ## Funcionalidades
 
 - **Escritório 3D** com mesas de trading, sala de reuniões, zona de descanso e ciclo dia/noite ligado à hora real.
-- **Cérebro dos agentes**: objetivos → tarefas com dependências → revisões (o QA revê código, o PM revê design) → bugs → objetivo concluído.
+- **Mesa de trading (paper trading)**: carteira com $100.000 virtuais. Notícias → análise → os traders operam (LONG/SHORT) segundo a sua estratégia → o Gestor de Risco aprova ou bloqueia → as posições fecham no alvo, no stop ou ao fim de 2 minutos.
+- **Funções**: Gestor da Mesa (planeia e revê análises), Traders (estratégias: seguir a tendência, reversão à média, rompimento), Analista, Gestor de Risco (limites: 8% por operação, 50% investido no máximo, 6 posições, parar após perder 3% na sessão) e Analista Júnior (notícias e relatórios).
+- **Carteira** (💼): património, resultado, posições abertas e operações fechadas.
 - **Quadro de tarefas** (📋 Tarefas) onde também se podem pedir objetivos novos.
 - **Estatísticas** (📊) e histórico por agente.
-- **Equipa que cresce**: se há trabalho à espera e ninguém livre com a função certa, o PM contrata alguém (até 10 pessoas). Também se pode contratar no botão "+ Contratar agente". Os contratados entram pela porta e ganham uma mesa nova.
+- **Equipa que cresce**: se há trabalho à espera e ninguém livre com a função certa, o Gestor da Mesa contrata alguém (até 10 pessoas). Também se pode contratar no botão "+ Contratar agente". Os contratados entram pela porta e ganham uma mesa nova.
 - **Gravação automática** no navegador: ao recarregar, tudo continua de onde estava.
 - **Continua a trabalhar com a aba escondida** (o ritmo vem de um Web Worker).
 
@@ -66,6 +68,7 @@ src/
     brain.js           o cérebro: objetivos, tarefas, revisões, pausas
     planner.js         divide um objetivo em tarefas
     team.js            contratar agentes (mesas novas, entrada pela porta)
+    trading.js         estratégias, regras de risco, posições e lucro/prejuízo
     routines.js        "histórias" animadas (visitar colegas, reuniões, café)
     movement.js        andar, sentar, levantar
     navigation.js      caminhos pelo escritório (algoritmo A*)
@@ -82,5 +85,5 @@ tests/               testes automáticos (Vitest)
 2. ~~Agentes animados~~ ✅
 3. ~~Cérebro simulado~~ ✅
 4. ~~Equipa que cresce~~ ✅
-5. IA real (Claude) + servidor próprio
-6. Agentes de trading (primeiro com dinheiro simulado)
+5. ~~Trading simulado (paper trading)~~ ✅
+6. IA real (Claude) + servidor próprio

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useOffice } from '../sim/store'
 import { HIRABLE_ROLES, freeDeskCount, hireAgent } from '../sim/team'
 
-const LABELS = { DEV: '💻 Programador', DESIGN: '🎨 Designer', QA: '🔍 QA', INTERN: '📚 Estagiário' }
+const LABELS = { TRADER: '💹 Trader', ANALYST: '📊 Analista', RISK: '🛡️ Risco', JUNIOR: '📰 Júnior' }
 
 export default function HireButton() {
   useOffice((s) => s.agents.length) // atualiza quando a equipa muda

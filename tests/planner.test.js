@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { planObjective, PRESETS } from '../src/sim/planner'
 
-const ROLES = ['PM', 'DEV', 'DESIGN', 'QA', 'INTERN']
+const ROLES = ['LEAD', 'TRADER', 'ANALYST', 'RISK', 'JUNIOR']
 
 describe('planObjective', () => {
   for (const title of [...PRESETS.map((p) => p.title), 'Objetivo inventado pelo utilizador']) {
@@ -29,11 +29,20 @@ describe('planObjective', () => {
     })
   }
 
-  it('código é revisto pelo QA e design pelo PM', () => {
+  it('ordens passam pelo Gestor de Risco e análises pelo Gestor da Mesa', () => {
     const { tasks } = planObjective(PRESETS[0].title)
     for (const t of tasks) {
-      if (t.kind === 'dev') expect(t.reviewerRole).toBe('QA')
-      if (t.kind === 'design') expect(t.reviewerRole).toBe('PM')
+      if (t.kind === 'trade') {
+        expect(t.reviewerRole).toBe('RISK')
+        expect(t.symbol).toBeTruthy()
+      }
+      if (t.kind === 'analysis') expect(t.reviewerRole).toBe('LEAD')
     }
+  })
+
+  it('objetivo escrito pelo utilizador opera os ativos mencionados', () => {
+    const { tasks } = planObjective('Operar bitcoin e ouro hoje')
+    const symbols = tasks.filter((t) => t.kind === 'trade').map((t) => t.symbol).sort()
+    expect(symbols).toEqual(['BTC', 'XAU'])
   })
 })

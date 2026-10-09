@@ -1,18 +1,21 @@
 // O CÉREBRO do escritório (simulado). A cada segundo decide:
-//   1. Se não há objetivo -> o PM escolhe um, planeia-o e faz a reunião de arranque
-//   2. Tarefas prontas a começar -> o PM entrega-as a quem tem a função certa
+//   1. Se não há objetivo -> o Gestor da Mesa escolhe um, planeia-o e faz a reunião de arranque
+//   2. Tarefas prontas a começar -> o Gestor entrega-as a quem tem a função certa
 //   3. Quem tem tarefa trabalha nela (a barra de progresso sobe)
-//   4. Trabalho acabado -> vai para revisão (QA revê código, PM revê design)
-//   5. A revisão pode encontrar bugs -> a tarefa volta para trás
+//   4. Trabalho acabado -> revisão (o Gestor revê análises; o Gestor de Risco aprova ordens)
+//   5. Uma análise pode precisar de correções; uma ordem pode ser bloqueada pelo risco
 //   6. Tudo concluído -> festa 🎉 e passa-se ao objetivo seguinte
 //   7. Quem está sem trabalho faz pausas (café, sofá, painel)
-// Na Fase 5 as decisões "inteligentes" (planear, rever) passam a ser feitas por uma IA.
+// As operações (abrir/fechar posições, regras de risco) estão em sim/trading.js.
+// Mais tarde as decisões "inteligentes" (planear, rever, operar) passam a ser feitas por uma IA.
 import { getAgent, getTask, log, say, useOffice } from './store'
 import { runtime } from './movement'
 import { every, simNow } from './clock'
 import { HIRABLE_ROLES, freeDeskCount, hireAgent } from './team'
 import { deskSeat } from './places'
 import { planObjective, PRESETS } from './planner'
+import { marketView, openPosition, prepareOrder, riskCheck, sessionSummary, updatePositions } from './trading'
+import { symbolName } from './market'
 import {
   busyCount, coffeeBreak, freeAgents, isBusy, kickoffMeeting, lookAtPanel,
   pick, planAtPanel, setAfterRoutine, sofaBreak, visitDesk,
@@ -27,11 +30,11 @@ const agentsWithRole = (role) => state().agents.filter((a) => a.role === role)
 
 // O que os agentes fazem quando estão sem tarefas
 const IDLE = {
-  PM: [['📋', 'A acompanhar a equipa', 'thinking'], ['✉️', 'A responder a emails', 'typing']],
-  DEV: [['📚', 'A estudar uma biblioteca nova', 'typing'], ['🧹', 'A arrumar o código', 'typing']],
-  DESIGN: [['🖌️', 'A procurar inspiração', 'thinking'], ['📐', 'A organizar os ícones', 'typing']],
-  QA: [['🧪', 'A preparar testes', 'typing'], ['📝', 'A rever relatórios antigos', 'thinking']],
-  INTERN: [['📚', 'A estudar o mercado', 'typing'], ['🤔', 'A ler sobre trading', 'thinking']],
+  LEAD: [['📋', 'A acompanhar a mesa', 'thinking'], ['📈', 'A rever a carteira', 'typing']],
+  TRADER: [['👀', 'A observar o mercado', 'thinking'], ['📉', 'A estudar o gráfico', 'typing']],
+  ANALYST: [['📊', 'A estudar indicadores', 'typing'], ['🧮', 'A calcular médias', 'thinking']],
+  RISK: [['🛡️', 'A vigiar a exposição', 'thinking'], ['📋', 'A rever os limites de risco', 'typing']],
+  JUNIOR: [['📰', 'A ler as notícias', 'typing'], ['🤔', 'A aprender sobre trading', 'thinking']],
 }
 
 // ---------- Estado interno ----------
@@ -52,7 +55,7 @@ const hasWork = (id) => !!(myTask(id) || myReview(id) || state().tasks.some((t) 
 
 // ---------- 1. Novo objetivo ----------
 function startNextObjective() {
-  const pm = agentsWithRole('PM')[0]
+  const pm = agentsWithRole('LEAD')[0]
   if (!pm || isBusy(pm.id) || freeAgents().length < 3) return
   const s = state()
   let title
@@ -93,7 +96,7 @@ function assignTasks() {
   const s = state()
   const ready = s.tasks.filter((t) =>
     t.status === 'todo' && !t.assignee && t.deps.every((d) => getTask(d)?.status === 'done'))
-  const pm = agentsWithRole('PM')[0]
+  const pm = agentsWithRole('LEAD')[0]
 
   for (const task of ready) {
     // candidatos: função certa e sem outra tarefa por fazer
@@ -107,7 +110,7 @@ function assignTasks() {
       log(`${task.emoji} ${agent.name} começou: ${task.title}`, agent.color)
     }
 
-    // O PM vai à mesa entregar a tarefa (se estiver livre); senão, atribui à distância
+    // O Gestor da Mesa vai à mesa entregar a tarefa (se estiver livre); senão, atribui à distância
     if (pm && pm.id !== agent.id && !isBusy(pm.id) && !isBusy(agent.id)) {
       visitDesk(pm.id, agent.id, {
         going: `A levar uma tarefa a ${agent.name}`,
@@ -125,9 +128,9 @@ function assignTasks() {
 }
 
 // ---------- 3/4/5. Trabalhar, pedir revisão, rever ----------
+// Probabilidade de o Gestor pedir correções a uma análise (cai a zero depois da primeira)
 function bugChance(task) {
-  if (task.kind === 'dev') return [0.4, 0.2, 0][Math.min(task.bugs, 2)]
-  if (task.kind === 'design') return [0.25, 0][Math.min(task.bugs, 1)]
+  if (task.kind === 'analysis') return [0.25, 0][Math.min(task.bugs, 1)]
   return 0
 }
 
@@ -139,6 +142,9 @@ function finishTask(task, agent) {
   state().addHistory(agent.id, { title: t.title, emoji: t.emoji, kind: t.kind, bugs: t.bugs, seconds, at: Date.now() })
   state().bumpStats({ tasksDone: 1, workSeconds: seconds })
   log(`✅ ${task.title} — concluída`, agent.color)
+  // extras de trading: a leitura do analista e o relatório do júnior
+  if (t.kind === 'analysis') log(`📊 ${agent.name}: ${(t.symbols || []).map(marketView).join(' · ')}`, agent.color)
+  if (t.kind === 'report') log(`📝 ${agent.name}: ${sessionSummary()}`, agent.color)
 }
 
 function sendToReview(task, agent) {
@@ -168,17 +174,34 @@ function finishReview(task, reviewer) {
   const assignee = getAgent(task.assignee)
   state().setStatus(reviewer.id, { reviews: getAgent(reviewer.id).reviews + 1 })
   state().bumpStats({ reviews: 1 })
+
+  // Ordem de trading: o Gestor de Risco aprova (abre a posição) ou bloqueia
+  if (task.kind === 'trade') {
+    const check = riskCheck(task.order)
+    if (check.ok) {
+      openPosition(task.order, assignee.id)
+      say(reviewer.id, '✅', 'Ordem aprovada')
+      patchTask(task.id, { outcome: 'opened' })
+    } else {
+      log(`🛑 ${reviewer.name} bloqueou ${task.order.side.toUpperCase()} ${symbolName(task.symbol)}: ${check.reason}`, reviewer.color)
+      say(reviewer.id, '🛑', 'Ordem bloqueada')
+      patchTask(task.id, { outcome: 'blocked' })
+    }
+    finishTask(task, assignee)
+    return
+  }
+
   if (Math.random() < bugChance(task)) {
     const n = 1 + Math.floor(Math.random() * 3)
     state().setStatus(assignee.id, { bugsCaused: assignee.bugsCaused + 1 })
     state().bumpStats({ bugsFound: 1 })
     patchTask(task.id, { status: 'doing', progress: 0.55, bugs: task.bugs + 1, reviewer: null, reviewReady: false })
-    log(`🐛 ${reviewer.name} encontrou ${n} bug${n > 1 ? 's' : ''} em "${task.title}"`, reviewer.color)
+    log(`✏️ ${reviewer.name} pediu ${n} correç${n > 1 ? 'ões' : 'ão'} em "${task.title}"`, reviewer.color)
     if (!isBusy(reviewer.id) && !isBusy(assignee.id)) {
       visitDesk(reviewer.id, assignee.id, {
-        going: `A levar a lista de bugs a ${assignee.name}`,
-        arrive: ['🐛', `Encontrei ${n} bug${n > 1 ? 's' : ''}!`],
-        reply: ['😅', 'Vou corrigir já'],
+        going: `A levar as correções a ${assignee.name}`,
+        arrive: ['✏️', `Faltam ${n} detalhe${n > 1 ? 's' : ''}`],
+        reply: ['👍', 'Vou rever já'],
       })
     }
   } else {
@@ -206,20 +229,31 @@ function doWork(dt) {
     const task = myTask(agent.id)
     if (task) {
       const p = task.progress + dt / task.work
-      if (p >= 1) {
+      if (p >= 1 && task.kind === 'trade') {
+        // O trader consulta a estratégia: sem sinal claro, não opera
+        const order = prepareOrder(task, agent)
+        if (order) {
+          patchTask(task.id, { order, worked: (task.worked || 0) + dt })
+          sendToReview(getTask(task.id), agent)
+        } else {
+          log(`⏸️ ${agent.name}: sem sinal claro em ${symbolName(task.symbol)}, não opera`, agent.color)
+          patchTask(task.id, { outcome: 'no-signal' })
+          finishTask(task, agent)
+        }
+      } else if (p >= 1) {
         if (task.reviewerRole) sendToReview(task, agent)
         else finishTask(task, agent)
       } else {
         patchTask(task.id, { progress: p, worked: (task.worked || 0) + dt })
-        const fixing = task.bugs > 0 ? '🐛 A corrigir: ' : ''
-        say(agent.id, task.bugs > 0 ? '🛠️' : task.emoji, `${fixing}${task.title}`, 'typing', p)
+        const fixing = task.bugs > 0 ? 'A corrigir: ' : ''
+        say(agent.id, task.bugs > 0 ? '✏️' : task.emoji, `${fixing}${task.title}`, 'typing', p)
       }
       continue
     }
 
     // Sem trabalho: estado "livre" (muda de vez em quando)
     if (agent.progress !== null || !agent.status || Math.random() < 0.08) {
-      const [emoji, text, activity] = pick(IDLE[agent.role] || IDLE.INTERN)
+      const [emoji, text, activity] = pick(IDLE[agent.role] || IDLE.JUNIOR)
       say(agent.id, emoji, text, activity)
     }
   }
@@ -256,7 +290,7 @@ function maybeBreak() {
 
 // ---------- 8. Contratar quando há trabalho à espera (Fase 4) ----------
 // Se uma tarefa pronta a começar fica muito tempo sem ninguém livre com a função certa,
-// o PM contrata alguém novo (se houver mesa livre). Há um intervalo mínimo entre contratações.
+// o Gestor da Mesa contrata alguém novo (se houver mesa livre). Há um intervalo mínimo entre contratações.
 const HIRE_AFTER_MS = 25_000
 const HIRE_COOLDOWN_MS = 45_000
 const waitingSince = {}
@@ -285,6 +319,7 @@ function maybeHire() {
 
 // ---------- Ciclo principal ----------
 function tick() {
+  updatePositions(TICK_MS) // fecha posições que atingiram o alvo, o stop ou o tempo máximo
   const s = state()
   const now = simNow()
   const noObjective = !s.objective || s.objective.status === 'done'
@@ -310,7 +345,7 @@ setAfterRoutine((id) => {
   if (review) say(id, '🔍', `A rever: ${review.title}`, 'thinking', review.reviewProgress)
   else if (task) say(id, task.emoji, task.title, 'typing', task.progress)
   else {
-    const [emoji, text, activity] = pick(IDLE[a.role] || IDLE.INTERN)
+    const [emoji, text, activity] = pick(IDLE[a.role] || IDLE.JUNIOR)
     say(id, emoji, text, activity)
   }
 })

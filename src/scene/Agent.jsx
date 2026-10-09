@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { Html, useCursor } from '@react-three/drei'
 import { runtime, isWalking } from '../sim/movement'
 import { REFLECT_LAYER } from './layers'
+import { ROLE_LABEL } from '../data/office'
 
 const PANTS = '#2d3446'
 const SHOES = '#1b1e25'
@@ -186,7 +187,7 @@ export default function Agent({ agent, selected, onSelect }) {
             <div className="tag" style={{ '--c': agent.color }}>
               <span className="dot" />
               {agent.name}
-              <small>{agent.role}</small>
+              <small>{ROLE_LABEL[agent.role]}</small>
             </div>
           </div>
         </Html>

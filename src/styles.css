@@ -124,6 +124,12 @@ html, body, #root { margin: 0; height: 100%; background: var(--bg); overflow: hi
 
 /* ---------- Velocidade + estatísticas ---------- */
 .controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.controls-right { display: flex; gap: 6px; }
+.controls-right .tasks-btn span { font-family: var(--mono); }
+
+/* ---------- Carteira ---------- */
+.portfolio { width: min(720px, calc(100% - 32px)); }
+.section-title { margin: 4px 0 -4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-weight: 600; }
 .speed { display: flex; padding: 2px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); }
 .speed button {
   padding: 4px 10px; border-radius: 6px; border: 0; cursor: pointer;

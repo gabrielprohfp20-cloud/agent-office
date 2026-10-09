@@ -30,11 +30,11 @@ describe('cérebro do escritório', () => {
     expect(historyTotal).toBe(s.stats.tasksDone)
   }, 120_000)
 
-  it('contrata sozinho quando há trabalho à espera (objetivo grande)', async () => {
+  it('contrata sozinho quando há trabalho à espera (sessão de ações)', async () => {
     vi.resetModules()
     localStorage.clear()
-    // começar pelo objetivo grande (3 tarefas de código em paralelo, só 2 programadores)
-    localStorage.setItem('agent-office-save-v1', JSON.stringify({ presetIndex: 3 }))
+    // começar pela sessão de ações (3 operações em paralelo, só 2 traders)
+    localStorage.setItem('agent-office-save-v1', JSON.stringify({ version: 2, presetIndex: 1 }))
     const { useOffice } = await import('../src/sim/store')
     const { startEngine } = await import('../src/sim/engine')
     useOffice.getState().setSpeed(40)
@@ -46,7 +46,7 @@ describe('cérebro do escritório', () => {
     }
     stop()
     const s = useOffice.getState()
-    expect(s.objective?.title).toBe('Plataforma de análise de mercado')
+    expect(s.objective?.title).toBe('Sessão de ações')
     expect(s.agents.length).toBeGreaterThan(before)
     expect(s.log.some((l) => l.text.includes('contratou'))).toBe(true)
   }, 120_000)

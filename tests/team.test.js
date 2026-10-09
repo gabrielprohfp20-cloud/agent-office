@@ -19,10 +19,11 @@ describe('contratar agentes', () => {
   it('um contratado recebe uma mesa extra e entra pela porta', async () => {
     const t = await fresh()
     const before = t.useOffice.getState().agents.length
-    const agent = t.hireAgent('DEV')
+    const agent = t.hireAgent('TRADER')
     expect(agent).not.toBeNull()
     expect(t.useOffice.getState().agents).toHaveLength(before + 1)
-    expect(agent.role).toBe('DEV')
+    expect(agent.role).toBe('TRADER')
+    expect(agent.strategy).toBeTruthy()
     expect(t.EXTRA_DESKS.map((d) => d.id)).toContain(agent.desk)
     // começa junto à porta, de pé
     expect(t.runtime[agent.id].x).toBeCloseTo(t.DOOR.x)
@@ -35,7 +36,7 @@ describe('contratar agentes', () => {
   it('não contrata mais do que as mesas livres', async () => {
     const t = await fresh()
     const hired = []
-    for (let i = 0; i < 10; i++) hired.push(t.hireAgent('QA'))
+    for (let i = 0; i < 10; i++) hired.push(t.hireAgent('RISK'))
     expect(hired.filter(Boolean)).toHaveLength(t.EXTRA_DESKS.length)
     expect(t.freeDeskCount()).toBe(0)
     // nomes e mesas sem repetições
@@ -44,14 +45,14 @@ describe('contratar agentes', () => {
     expect(new Set(agents.map((a) => a.desk)).size).toBe(agents.length)
   })
 
-  it('não contrata funções inválidas (ex.: outro PM)', async () => {
+  it('não contrata funções inválidas (ex.: outro Gestor da Mesa)', async () => {
     const t = await fresh()
-    expect(t.hireAgent('PM')).toBeNull()
+    expect(t.hireAgent('LEAD')).toBeNull()
   })
 
   it('os contratados ficam gravados e voltam depois de recarregar', async () => {
     const t = await fresh()
-    const agent = t.hireAgent('DESIGN')
+    const agent = t.hireAgent('ANALYST')
     // força a gravação imediata (normalmente acontece 2 s depois de cada mudança)
     window.dispatchEvent(new Event('beforeunload'))
     vi.resetModules()
@@ -59,7 +60,7 @@ describe('contratar agentes', () => {
     const back = useOffice.getState().agents.find((a) => a.id === agent.id)
     expect(back).toBeTruthy()
     expect(back.name).toBe(agent.name)
-    expect(back.role).toBe('DESIGN')
+    expect(back.role).toBe('ANALYST')
     expect(back.desk).toBe(agent.desk)
   })
 })

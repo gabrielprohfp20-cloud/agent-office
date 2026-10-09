@@ -1,10 +1,13 @@
 // Interface por cima do 3D: objetivo atual, equipa, detalhes do agente, feed e quadro de tarefas.
 import { useEffect, useRef, useState } from 'react'
 import { useOffice } from '../sim/store'
+import { ROLE_LABEL, STRATEGIES } from '../data/office'
 import { changePct, fmtPrice, market } from '../sim/market'
 import TaskBoard from './TaskBoard'
 import StatsPanel, { fmtSeconds } from './StatsPanel'
 import AgentEditor from './AgentEditor'
+import PortfolioPanel from './PortfolioPanel'
+import { START_CAPITAL, equity, fmtMoney, unrealized } from '../sim/trading'
 import HireButton from './HireButton'
 
 const ACTIVITY = {
@@ -83,6 +86,9 @@ export default function Hud({ selected, onSelect }) {
   const setSpeed = useOffice((s) => s.setSpeed)
   const [boardOpen, setBoardOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [portfolioOpen, setPortfolioOpen] = useState(false)
+  const portfolio = useOffice((s) => s.portfolio)
+  const eq = equity(portfolio)
   const [editing, setEditing] = useState(false)
   useSpeedKeys(speed, setSpeed)
   const [teamFolded, setTeamFolded] = useRemembered('fold-team')
@@ -90,6 +96,7 @@ export default function Hud({ selected, onSelect }) {
   const current = agents.find((a) => a.id === selected)
   const working = agents.filter((a) => a.activity !== 'idle').length
   const doneTasks = tasks.filter((t) => t.status === 'done').length
+  const myPositions = current ? portfolio.positions.filter((p) => p.trader === current.id) : []
   const currentTask = current && tasks.find((t) => (t.assignee === current.id && t.status === 'doing') || (t.reviewer === current.id && t.status === 'review'))
 
   return (
@@ -121,7 +128,12 @@ export default function Hud({ selected, onSelect }) {
               </button>
             ))}
           </div>
-          <button className="tasks-btn" onClick={() => setStatsOpen((o) => !o)}>📊 Estatísticas</button>
+          <div className="controls-right">
+            <button className="tasks-btn" onClick={() => setPortfolioOpen((o) => !o)} title="Carteira (dinheiro virtual)">
+              💼 <span className={eq >= START_CAPITAL ? 'up' : 'down'}>{fmtMoney(eq)}</span>
+            </button>
+            <button className="tasks-btn" onClick={() => setStatsOpen((o) => !o)}>📊</button>
+          </div>
         </div>
 
         {/* Objetivo atual (linha discreta) + botão para abrir o quadro de tarefas */}
@@ -143,6 +155,7 @@ export default function Hud({ selected, onSelect }) {
 
       {boardOpen && <TaskBoard onClose={() => setBoardOpen(false)} />}
       {statsOpen && <StatsPanel onClose={() => setStatsOpen(false)} />}
+      {portfolioOpen && <PortfolioPanel onClose={() => setPortfolioOpen(false)} />}
 
       <aside className={`panel team${teamFolded ? ' folded' : ''}`}>
         <div className="team-head">
@@ -162,7 +175,7 @@ export default function Hud({ selected, onSelect }) {
               >
                 <div className="avatar">{a.name[0]}</div>
                 <div className="info">
-                  <strong>{a.name} <em>{a.role}</em></strong>
+                  <strong>{a.name} <em>{ROLE_LABEL[a.role]}</em></strong>
                   <span>{a.emoji} {a.status}</span>
                 </div>
                 <div className="asset">
@@ -204,8 +217,23 @@ export default function Hud({ selected, onSelect }) {
                 ? `${currentTask.title} (${Math.round((currentTask.status === 'review' ? currentTask.reviewProgress : currentTask.progress) * 100)}%)`
                 : <span className="muted">Sem tarefa</span>}
             </dd>
+            {current.role === 'TRADER' && (
+              <>
+                <dt>Estratégia</dt><dd>{STRATEGIES[current.strategy] || '–'}</dd>
+                <dt>Lucro</dt>
+                <dd className={current.pnl > 0 ? 'up' : current.pnl < 0 ? 'down' : ''}>
+                  {current.trades ? ` em  operaç (% com lucro)` : 'Ainda sem operações fechadas'}
+                </dd>
+                <dt>Abertas</dt>
+                <dd>
+                  {myPositions.length
+                    ? myPositions.map((p) => `  `).join(' · ')
+                    : <span className="muted">Nenhuma</span>}
+                </dd>
+              </>
+            )}
             <dt>Resumo</dt>
-            <dd>{current.doneCount} concluída{current.doneCount === 1 ? '' : 's'} · {current.reviews} revis{current.reviews === 1 ? 'ão' : 'ões'} · {current.bugsCaused} bug{current.bugsCaused === 1 ? '' : 's'}</dd>
+            <dd>{current.doneCount} concluída{current.doneCount === 1 ? '' : 's'} · {current.reviews} revis{current.reviews === 1 ? 'ão' : 'ões'}</dd>
             <dt>Mercado</dt>
             <dd className="mono">{market[current.symbol].name} {fmtPrice(market[current.symbol])} <Change s={market[current.symbol]} /></dd>
           </dl>
@@ -216,7 +244,7 @@ export default function Hud({ selected, onSelect }) {
               {current.history.slice(0, 6).map((h, i) => (
                 <li key={i}>
                   <span>{h.emoji} {h.title}</span>
-                  <small>{fmtSeconds(h.seconds)}{h.bugs > 0 && ` · 🐛 ${h.bugs}`}</small>
+                  <small>{fmtSeconds(h.seconds)}{h.bugs > 0 && ` · ✏️ ${h.bugs}`}</small>
                 </li>
               ))}
             </ol>

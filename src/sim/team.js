@@ -1,7 +1,7 @@
 // Fase 4: a equipa que cresce.
 // Contratar = criar um agente novo, dar-lhe uma mesa livre, fazê-lo entrar pela porta
 // e ir sentar-se. As mesas extra só aparecem no escritório quando alguém as ocupa.
-import { DESKS, DOOR, EXTRA_DESKS } from '../data/office'
+import { DESKS, DOOR, EXTRA_DESKS, STRATEGIES } from '../data/office'
 import { SYMBOLS } from './market'
 import { buildGrid } from './navigation'
 import { placeStanding, sitAt, wait } from './movement'
@@ -9,13 +9,13 @@ import { deskSeat } from './places'
 import { getAgent, log, say, useOffice } from './store'
 import { isBusy, run, visitDesk } from './routines'
 
-export const HIRABLE_ROLES = ['DEV', 'DESIGN', 'QA', 'INTERN']
+export const HIRABLE_ROLES = ['TRADER', 'ANALYST', 'RISK', 'JUNIOR']
 
 const ROLE_INFO = {
-  DEV: { title: 'Programador(a)', emoji: '💻' },
-  DESIGN: { title: 'Designer', emoji: '🎨' },
-  QA: { title: 'Controlo de Qualidade', emoji: '🔍' },
-  INTERN: { title: 'Estagiário(a)', emoji: '📚' },
+  TRADER: { title: 'Trader', emoji: '💹' },
+  ANALYST: { title: 'Analista de Mercado', emoji: '📊' },
+  RISK: { title: 'Gestor(a) de Risco', emoji: '🛡️' },
+  JUNIOR: { title: 'Analista Júnior', emoji: '📰' },
 }
 const NAMES = ['Kai', 'Luna', 'Orion', 'Vega', 'Zara', 'Milo', 'Nia', 'Theo', 'Ravi', 'Mira', 'Juno', 'Leo']
 const COLORS = ['#14b8a6', '#ef4444', '#eab308', '#a855f7', '#06b6d4', '#84cc16', '#fb7185', '#6366f1']
@@ -59,6 +59,10 @@ export function hireAgent(role, reason = 'manual') {
     hair: pick(HAIRS),
     desk: desk.id,
     symbol: pick(SYMBOLS).id,
+    strategy: role === 'TRADER' ? pick(Object.keys(STRATEGIES)) : undefined,
+    pnl: 0,
+    trades: 0,
+    wins: 0,
     hired: true,
     activity: 'idle',
     emoji: '👋',
@@ -74,11 +78,11 @@ export function hireAgent(role, reason = 'manual') {
   rebuildNavigation()
   placeStanding(agent.id, DOOR)
 
-  const pm = agents().find((a) => a.role === 'PM')
+  const pm = agents().find((a) => a.role === 'LEAD')
   const why = reason === 'auto' ? ' (havia trabalho à espera)' : ''
   log(`🤝 ${pm ? pm.name : 'A equipa'} contratou ${name} (${role})${why}`, agent.color)
 
-  // Entra pela porta, cumprimenta, vai para a mesa; depois o PM dá as boas-vindas
+  // Entra pela porta, cumprimenta, vai para a mesa; depois o Gestor dá as boas-vindas
   run([agent.id], async () => {
     await wait(1200)
     say(agent.id, '🚶', 'À procura da minha mesa')

@@ -2,6 +2,10 @@
 // e deixa o utilizador pedir novos objetivos à equipa.
 import { useState } from 'react'
 import { useOffice } from '../sim/store'
+import { ROLE_LABEL } from '../data/office'
+
+// Resultado de uma tarefa "Operar X"
+const OUTCOMES = { opened: '✅ posição aberta', blocked: '🛑 bloqueada pelo risco', 'no-signal': '⏸️ sem sinal' }
 
 const COLUMNS = [
   { id: 'todo', title: 'A fazer' },
@@ -21,9 +25,11 @@ function TaskCard({ task, agents }) {
         <span>{task.emoji}</span> {task.title}
       </div>
       <div className="card-meta">
-        {owner ? <span className="who"><i />{owner.name}</span> : <span className="muted">{task.role}</span>}
+        {owner ? <span className="who"><i />{owner.name}</span> : <span className="muted">{ROLE_LABEL[task.role]}</span>}
         {waiting && task.deps.length > 0 && <span className="muted">⛓️ à espera</span>}
-        {task.bugs > 0 && <span className="bug">🐛 {task.bugs}</span>}
+        {task.bugs > 0 && <span className="bug">✏️ {task.bugs}</span>}
+        {task.order && <span className={task.order.side === 'long' ? 'up' : 'down'}>{task.order.side.toUpperCase()}</span>}
+        {task.outcome && <span className="muted">{OUTCOMES[task.outcome]}</span>}
         {reviewer && task.status === 'review' && <span className="muted">🔍 {reviewer.name}</span>}
       </div>
       {(task.status === 'doing' || task.status === 'review') && (
@@ -59,7 +65,7 @@ export default function TaskBoard({ onClose }) {
       </div>
 
       {objective?.status === 'planning' ? (
-        <div className="board-empty">🧠 O PM está a dividir o objetivo em tarefas…</div>
+        <div className="board-empty">🧠 O Gestor da Mesa está a dividir o objetivo em tarefas…</div>
       ) : (
         <div className="columns">
           {COLUMNS.map((col) => {
@@ -80,7 +86,7 @@ export default function TaskBoard({ onClose }) {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Novo objetivo para a equipa (ex.: Painel de notícias do mercado)"
+          placeholder="Novo objetivo (ex.: Operar bitcoin e ouro hoje)"
           maxLength={60}
         />
         <button type="submit" disabled={!text.trim()}>Adicionar</button>

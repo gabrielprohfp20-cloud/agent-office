@@ -63,7 +63,7 @@ export function visitDesk(fromId, toId, { going, arrive, reply, onArrive }) {
   })
 }
 
-// ---------- PM vai planear o objetivo no painel holográfico ----------
+// ---------- O Gestor da Mesa vai planear o objetivo no painel holográfico ----------
 export function planAtPanel(pmId, title, onPlanned) {
   return run([pmId], async () => {
     // se os dois lugares estiverem ocupados, usa o primeiro mas não o reserva

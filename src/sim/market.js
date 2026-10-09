@@ -50,6 +50,18 @@ function makeSeries(s) {
 // market.BTC, market.ETH, ...
 export const market = Object.fromEntries(SYMBOLS.map((s) => [s.id, makeSeries(s)]))
 
+// Recomeça o mercado a partir dos últimos preços gravados (para as posições abertas
+// não "saltarem" quando a página é recarregada)
+export function restorePrices(prices = {}) {
+  for (const s of SYMBOLS) {
+    const p = prices[s.id]
+    if (typeof p === 'number' && p > 0) Object.assign(market[s.id], makeSeries({ ...s, price: p }))
+  }
+}
+
+export const lastPrices = () => Object.fromEntries(Object.values(market).map((s) => [s.id, s.last]))
+export const symbolName = (id) => market[id]?.name || id
+
 const listeners = new Set()
 export function onMarket(fn) {
   listeners.add(fn)

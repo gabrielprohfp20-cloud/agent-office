@@ -21,6 +21,7 @@ describe('gravação e recuperação', () => {
 
   it('recupera estatísticas, histórico e tarefas', async () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version: 2,
       agents: [{ id: 'dev1', doneCount: 3, reviews: 1, bugsCaused: 2, history: [{ title: 'X', seconds: 10 }] }],
       objective: { id: 'o1', title: 'Teste', status: 'active' },
       tasks: [{ id: 't1', status: 'doing', progress: 0.4, assignee: 'dev1', deps: [] }],
@@ -43,6 +44,7 @@ describe('gravação e recuperação', () => {
 
   it('objetivo a meio do planeamento volta para a fila', async () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version: 2,
       objective: { id: 'planning', title: 'Meio planeado', status: 'planning' },
       tasks: [],
       queue: ['Depois'],
@@ -54,6 +56,7 @@ describe('gravação e recuperação', () => {
 
   it('tarefas por entregar e revisões pendentes ficam prontas a retomar', async () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version: 2,
       objective: { id: 'o1', title: 'T', status: 'active' },
       tasks: [
         { id: 'a', status: 'todo', assignee: 'dev1', deps: [] },
@@ -78,5 +81,22 @@ describe('gravação e recuperação', () => {
     const pm = (await freshStore()).getState().agents.find((a) => a.id === 'pm')
     expect(pm.name).toBe('Zeus')
     expect(pm.color).toBe('#ff0000')
+  })
+
+  it('gravação antiga (antes do trading) converte as funções dos contratados', async () => {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      objective: { id: 'o1', title: 'Painel antigo', status: 'active' },
+      tasks: [{ id: 'a', status: 'doing', role: 'DEV', deps: [] }],
+      agents: [{ id: 'hire-x', hired: true, name: 'Kai', role: 'DEV', title: 'Programador(a)', desk: 6, symbol: 'BTC', doneCount: 4, history: [] }],
+      stats: { tasksDone: 7 },
+    }))
+    const s = (await freshStore()).getState()
+    const kai = s.agents.find((a) => a.id === 'hire-x')
+    expect(kai.role).toBe('TRADER')
+    expect(kai.title).toBe('Trader')
+    expect(kai.strategy).toBeTruthy()
+    expect(kai.doneCount).toBe(4) // o histórico mantém-se
+    expect(s.tasks).toEqual([]) // as tarefas antigas de programação saem
+    expect(s.stats.tasksDone).toBe(7)
   })
 })

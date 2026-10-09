@@ -1,82 +1,62 @@
-// O "planeador" do PM: transforma um objetivo numa lista de tarefas.
-// Por agora usa modelos prontos (simulado). Na Fase 5 será uma IA a fazer este plano.
+// O "planeador" do Gestor da Mesa: transforma um objetivo numa lista de tarefas.
+// Por agora usa modelos prontos (simulado). Mais tarde será uma IA a fazer este plano.
 //
 // Cada tarefa tem:
-//   role   -> quem a pode fazer (DEV, DESIGN, QA, INTERN, PM)
-//   kind   -> tipo: research, design, dev, test, docs
+//   role   -> quem a pode fazer (TRADER, ANALYST, RISK, JUNIOR, LEAD)
+//   kind   -> tipo: research (notícias), analysis (análise), trade (operar), report (relatório)
 //   deps   -> tarefas que têm de estar concluídas antes desta começar
 //   status -> 'todo' (a fazer), 'doing' (em curso), 'review' (em revisão), 'done' (concluída)
+//   symbol -> (só nas operações) o ativo a operar
+import { SYMBOLS } from './market'
 
 const KINDS = {
-  research: { emoji: '🔎', work: [16, 22] },
-  design: { emoji: '🎨', work: [24, 32], reviewer: 'PM' },
-  dev: { emoji: '💻', work: [28, 40], reviewer: 'QA' },
-  test: { emoji: '🧪', work: [18, 24] },
-  docs: { emoji: '📝', work: [16, 22] },
+  research: { emoji: '📰', work: [14, 20] },
+  analysis: { emoji: '📊', work: [18, 26], reviewer: 'LEAD' },
+  trade: { emoji: '💹', work: [12, 18], reviewer: 'RISK' }, // a "revisão" é a aprovação de risco
+  report: { emoji: '📝', work: [12, 18] },
 }
 
-const ROLE_FOR = { research: 'INTERN', design: 'DESIGN', dev: 'DEV', test: 'QA', docs: 'INTERN' }
+const ROLE_FOR = { research: 'JUNIOR', analysis: 'ANALYST', trade: 'TRADER', report: 'JUNIOR' }
+
+const name = (id) => SYMBOLS.find((s) => s.id === id)?.name || id
+const names = (ids) => ids.map(name).join(', ').replace(/, ([^,]*)$/, ' e $1')
+
+// Uma sessão de trading típica: notícias -> análise -> operações em paralelo -> relatório
+function session(research, symbols, report) {
+  return [
+    ['research', research],
+    ['analysis', `Analisar ${names(symbols)}`, [0], { symbols }],
+    ...symbols.map((id) => ['trade', `Operar ${name(id)}`, [1], { symbol: id }]),
+    ['report', report, symbols.map((_, i) => i + 2)],
+  ]
+}
 
 // Objetivos de exemplo que o escritório escolhe sozinho quando não há pedidos
 export const PRESETS = [
-  {
-    title: 'Painel de alertas de preço',
-    tasks: [
-      ['research', 'Pesquisar que alertas os traders querem'],
-      ['design', 'Desenhar o ecrã de alertas', [0]],
-      ['dev', 'Ligar o sistema aos preços do mercado', [0]],
-      ['dev', 'Programar os alertas', [1, 2]],
-      ['test', 'Teste final dos alertas', [3]],
-      ['docs', 'Escrever o manual de utilização', [3]],
-    ],
-  },
-  {
-    title: 'Relatório diário do mercado',
-    tasks: [
-      ['research', 'Recolher dados do BTC, ouro e S&P 500'],
-      ['dev', 'Calcular as variações do dia', [0]],
-      ['design', 'Desenhar o layout do relatório', [0]],
-      ['dev', 'Gerar o relatório automaticamente', [1, 2]],
-      ['test', 'Verificar os números do relatório', [3]],
-    ],
-  },
-  {
-    title: 'Simulador de carteira',
-    tasks: [
-      ['research', 'Definir as regras da carteira'],
-      ['design', 'Desenhar o painel da carteira', [0]],
-      ['dev', 'Programar compras e vendas simuladas', [0]],
-      ['dev', 'Mostrar lucro e prejuízo em tempo real', [1, 2]],
-      ['test', 'Testar cenários de mercado', [3]],
-      ['docs', 'Escrever o guia do simulador', [3]],
-    ],
-  },
-  {
-    // Objetivo grande: 3 tarefas de código em paralelo -> com 2 programadores, falta gente
-    title: 'Plataforma de análise de mercado',
-    tasks: [
-      ['research', 'Escolher os indicadores a acompanhar'],
-      ['dev', 'Ligar os dados de criptomoedas', [0]],
-      ['dev', 'Ligar os dados de ações', [0]],
-      ['dev', 'Ligar os dados de matérias-primas', [0]],
-      ['design', 'Desenhar o painel principal', [0]],
-      ['dev', 'Juntar tudo no painel', [1, 2, 3, 4]],
-      ['test', 'Testar a plataforma completa', [5]],
-      ['docs', 'Escrever o guia da plataforma', [5]],
-    ],
-  },
+  { title: 'Sessão de criptomoedas', tasks: session('Ler as notícias de cripto', ['BTC', 'ETH'], 'Relatório da sessão cripto') },
+  // 3 operações em paralelo com só 2 traders -> falta gente e a equipa cresce
+  { title: 'Sessão de ações', tasks: session('Ler os resultados das empresas', ['AAPL', 'TSLA', 'SPX'], 'Relatório da sessão de ações') },
+  { title: 'Ouro e câmbio', tasks: session('Acompanhar o dólar e os juros', ['XAU', 'EUR'], 'Relatório de ouro e câmbio') },
+  { title: 'Varredura completa do mercado', tasks: session('Ler as notícias globais', ['BTC', 'NDX', 'XAU', 'EUR'], 'Relatório da varredura') },
+]
+
+// Palavras que, num objetivo escrito pelo utilizador, indicam um ativo
+const KEYWORDS = [
+  [/\b(btc|bitcoin)\b/i, 'BTC'], [/\b(eth|ethereum)\b/i, 'ETH'], [/\b(ouro|gold|xau)\b/i, 'XAU'],
+  [/\b(euro|eur)\b/i, 'EUR'], [/\b(apple|aapl)\b/i, 'AAPL'], [/\b(tesla|tsla)\b/i, 'TSLA'],
+  [/\b(nasdaq|ndx)\b/i, 'NDX'], [/(s&p|sp500|spx)/i, 'SPX'],
 ]
 
 // Plano genérico para objetivos escritos pelo utilizador
+export function symbolsFor(title) {
+  const found = KEYWORDS.filter(([re]) => re.test(title)).map(([, id]) => id)
+  if (found.length) return [...new Set(found)].slice(0, 4)
+  const shuffled = [...SYMBOLS].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 2).map((s) => s.id)
+}
+
 function genericPlan(title) {
-  return [
-    ['research', `Pesquisar: ${title}`],
-    ['design', `Desenhar a interface de "${title}"`, [0]],
-    ['dev', `Preparar os dados para "${title}"`, [0]],
-    ['dev', `Programar "${title}"`, [1, 2]],
-    ['test', `Teste final de "${title}"`, [3]],
-    ['docs', `Documentar "${title}"`, [3]],
-  ]
+  return session(`Pesquisar: ${title}`, symbolsFor(title), `Relatório: ${title}`)
 }
 
 const rand = ([a, b]) => a + Math.random() * (b - a)
@@ -86,7 +66,7 @@ export function planObjective(title) {
   const rows = preset ? preset.tasks : genericPlan(title)
   const objId = `obj${Date.now().toString(36)}` // único, mesmo depois de recarregar a página
   const ids = rows.map((_, i) => `${objId}-t${i + 1}`)
-  const tasks = rows.map(([kind, taskTitle, deps = []], i) => ({
+  const tasks = rows.map(([kind, taskTitle, deps = [], extra = {}], i) => ({
     id: ids[i],
     title: taskTitle,
     kind,
@@ -101,6 +81,7 @@ export function planObjective(title) {
     reviewProgress: 0,
     work: rand(KINDS[kind].work), // segundos de trabalho
     bugs: 0,
+    ...extra,
   }))
   return { objective: { id: objId, title, status: 'active' }, tasks }
 }

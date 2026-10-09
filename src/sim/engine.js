@@ -7,6 +7,7 @@ import { startBrain } from './brain'
 import { startMarket } from './market'
 import { onTick, simNow } from './clock'
 import { rebuildNavigation } from './team'
+import { startSession } from './trading'
 
 // A navegação tem de conhecer as mesas dos contratados (recuperados da gravação)
 rebuildNavigation()
@@ -38,6 +39,7 @@ export function frameStep() {
 
 export function startEngine() {
   startMarket()
+  startSession() // o limite de perda da sessão conta a partir de agora
   // se o 3D não desenhou nada há mais de 0,25 s, o relógio de fundo faz o movimento avançar
   const stopTick = onTick((now) => {
     if (performance.now() - lastFrame > 250) advance(now)
